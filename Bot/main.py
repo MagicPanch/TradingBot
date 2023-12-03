@@ -34,12 +34,16 @@ class Bollinger(bt.Strategy):
             # Vender toda la posición
             self.sell()
 # Create a Stratey
-class Cross_rsi(bt.Strategy):
+class Cross_rsi_bollinger(bt.Strategy):
     params = (
         ('first_period', 2),
-        ('rsi_period',14),
-        ('rsi_overbought',70),
-        ("rsi_oversold", 30)
+        ("short_period", 50),
+        ("long_period", 200),
+        ('rsi_period',10),
+        ('rsi_overbought',65),
+        ("rsi_oversold", 35),
+        ("period", 10),
+        ("devfactor", 2.0),
     )
 
     def log(self, txt, dt=None):
@@ -56,12 +60,16 @@ class Cross_rsi(bt.Strategy):
         self.buyprice = None
         self.buycomm = None
 
-        # Add a MovingAverageSimple indicator
+        self.short_ma = bt.indicators.SimpleMovingAverage(self.data.close, period=self.params.short_period)
+        self.long_ma = bt.indicators.SimpleMovingAverage(self.data.close, period=self.params.long_period)
+        self.crossover = bt.indicators.CrossOver(self.short_ma, self.long_ma)
+        self.crossunder = bt.indicators.CrossDown(self.short_ma, self.long_ma)
         self.short_sma = bt.indicators.SimpleMovingAverage(
             self.datas[0], period=self.params.first_period)
         self.rsi = bt.indicators.RelativeStrengthIndex(
             period=self.params.rsi_period)
-
+        self.bollinger = bt.indicators.BollingerBands(self.data.close, period=self.params.period,
+                                                      devfactor=self.params.devfactor)
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
             # Buy/Sell order submitted/accepted to/by broker - Nothing to do
@@ -119,7 +127,7 @@ class Cross_rsi(bt.Strategy):
                 # Keep track of the created order to avoid a 2nd order
                 self.order = self.buy()
 
-        elif self.dataclose < self.short_sma and self.dataclose[-1] >= self.short_sma[-1]and self.rsi > self.params.rsi_overbought:
+        elif self.crossunder > 0 or self.data.close < self.bollinger.lines.top and self.rsi > self.params.rsi_overbought:
                 # SELL, SELL, SELL!!! (with all possible default parameters)
                 self.log('SELL CREATE, %.2f' % self.dataclose[0])
 
@@ -220,8 +228,8 @@ if __name__ == '__main__':
     # Create a cerebro entity
     cerebro = bt.Cerebro()
 
-    # Cross_rsi strategy
-    idx = cerebro.addstrategy(Cross_rsi)
+    # Cross_rsi_bollinger_strategy
+    idx = cerebro.addstrategy(Cross_rsi_bollinger)
     cerebro.addsizer_byidx(idx, bt.sizers.SizerFix, stake=1400)
 
     # Golden_Death_Cross strategy
@@ -238,9 +246,9 @@ if __name__ == '__main__':
     data = bt.feeds.YahooFinanceCSVData(
         dataname=datapath,
         # Do not pass values before this date
-        fromdate=datetime.datetime(2000, 1, 1),
+        fromdate=datetime.datetime(2005, 1, 1),
         # Do not pass values before this date
-        todate=datetime.datetime(2010, 12, 30),
+        todate=datetime.datetime(2006, 12, 30),
         # Do not pass values after this date
         reverse=False)
 
