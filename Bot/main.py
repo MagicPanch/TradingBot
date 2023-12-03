@@ -34,7 +34,7 @@ class Bollinger(bt.Strategy):
             # Vender toda la posición
             self.sell()
 # Create a Stratey
-class Cross_rsi_bollinger(bt.Strategy):
+class FinalStrategy(bt.Strategy):
     params = (
         ('first_period', 2),
         ("short_period", 50),
@@ -228,8 +228,8 @@ if __name__ == '__main__':
     # Create a cerebro entity
     cerebro = bt.Cerebro()
 
-    # Cross_rsi_bollinger_strategy
-    idx = cerebro.addstrategy(Cross_rsi_bollinger)
+    # estrategia con las correcciones
+    idx = cerebro.addstrategy(FinalStrategy)
     cerebro.addsizer_byidx(idx, bt.sizers.SizerFix, stake=1400)
 
     # Golden_Death_Cross strategy
@@ -246,9 +246,9 @@ if __name__ == '__main__':
     data = bt.feeds.YahooFinanceCSVData(
         dataname=datapath,
         # Do not pass values before this date
-        fromdate=datetime.datetime(2005, 1, 1),
+        fromdate=datetime.datetime(2006, 1, 1),
         # Do not pass values before this date
-        todate=datetime.datetime(2006, 12, 30),
+        todate=datetime.datetime(2007, 12, 30),
         # Do not pass values after this date
         reverse=False)
 
